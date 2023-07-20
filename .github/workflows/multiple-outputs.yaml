@@ -1,0 +1,70 @@
+name: multiple outputs
+
+on:
+  pull_request:
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event.number }}
+  cancel-in-progress: true
+
+jobs:
+  check_pipelines:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Run scripts under 'scripts/'
+        id: run_scripts
+        env:
+          SCRIPTS_FOLDER: "scripts/"
+        run: |
+          for _script in $(find "${SCRIPTS_FOLDER}" -type f -name "*.sh"); do
+              echo "::notice::Running script '${_script}'"
+              _script_name=$(basename "${_script}")
+                
+              set +e
+              _cmd_output=$(bash "${_script}" 2>&1)
+              _cmd_exit_code=$?
+              set -e
+              
+              if [[ ${_cmd_exit_code} -ne 0 ]]; then
+                  echo "::error::Script '${_script_name}' failed with exit code '${_cmd_exit_code}'"
+                  echo "::error::Script '${_script_name}' output:"
+                  echo "${_cmd_output}"
+                  exit ${_cmd_exit_code}
+              fi
+          
+              ## extract the first occurrence of 'OUTPUT_FOLDER=...\n' from the output, if any
+              if [[ "${_cmd_output}" =~ OUTPUT_FOLDER=([^$'\n']+) ]]; then
+                  OUTPUT_FOLDER="${BASH_REMATCH[1]}"
+              else
+                  echo "::error::Script '${_script_name}' did not print 'OUTPUT_FOLDER'"
+                  exit 1
+              fi
+              
+              ## verify that the `OUTPUT_FOLDER` exists
+              if [[ ! -d "${OUTPUT_FOLDER}" ]]; then
+                  echo "::error::Script '${_script_name}' set OUTPUT_FOLDER to '${OUTPUT_FOLDER}' which does not exist"
+                  exit 1
+              fi
+              
+              ## verify that the `OUTPUT_FOLDER` contains a `test.txt` file
+              if [[ ! -f "${OUTPUT_FOLDER}/test.txt" ]]; then
+                  echo "::error::Script '${_script_name}' set OUTPUT_FOLDER to '${OUTPUT_FOLDER}' which does not contain a 'test.txt' file"
+                  exit 1
+              fi
+              
+              echo "::notice::Script '${_script_name}' set OUTPUT_FOLDER to: '${OUTPUT_FOLDER}'"
+              echo "${_script_name}=${OUTPUT_FOLDER}" >> "$GITHUB_OUTPUT"
+          done
+
+      - name: Display script outputs
+        env:
+          SCRIPT_OUTPUTS: ${{ toJSON(steps.run_scripts.outputs) }}
+        run: |
+          echo "::notice::Script outputs: ${SCRIPT_OUTPUTS}"
