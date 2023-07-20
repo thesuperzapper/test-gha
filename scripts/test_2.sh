@@ -12,4 +12,4 @@ mkdir -p "$OUTPUT_FOLDER"
 echo "Hello World!" > "${OUTPUT_FOLDER}/test.txt"
 
 # print the output folder path
-echo "OUTPUT_FOLDER=${OUTPUT_FOLDER}"
+echo "OUTPUT_FOLDER=$(realpath ${OUTPUT_FOLDER})"
