@@ -60,7 +60,7 @@ jobs:
               fi
               
               echo "::notice::Script '${_script_name}' set OUTPUT_FOLDER to: '${OUTPUT_FOLDER}'"
-              echo "${_script_name}={OUTPUT_FOLDER}" >> "$GITHUB_OUTPUT"
+              echo "${_script_name}=${OUTPUT_FOLDER}" >> "$GITHUB_OUTPUT"
           done
 
       - name: Display script outputs
