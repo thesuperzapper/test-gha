@@ -1,0 +1,27 @@
+name: Test Timeout Behavior
+
+on:
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  acls:
+    runs-on: ubuntu-latest
+
+    timeout-minutes: 2
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Long Test Step
+        run: |
+          sleep 600
+
+      - name: Test Cleanup
+        if: always()
+        run: |
+          echo "Starting cleanup..."
+          sleep 60
+          echo "Still cleaning up..."
+          sleep 5
+          echo "Cleanup complete."
